@@ -1,7 +1,8 @@
 ###Requirements
 - Node < 6.0.0* & npm
+- eris-cli version 0.11.4
 
-* (eris-db.js support node version < 6.0.0)
+** (eris-db.js support node version < 6.0.0)
 
 ####Note
 (on Ubuntu)
