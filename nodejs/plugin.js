@@ -487,7 +487,7 @@ function runLog(){
     }
     function startEv2(err,res){
             if(err) throw new Error(err);
-            console.log('Listening @ 0x'+oraclizeC.toLowerCase()+' (Oraclize Connector)\n');
+            console.log('Listening @ 0x'+oraclizeC.toLowerCase().replace('0x000000000000000000000000','')+' (Oraclize Connector)\n');
     }
 
     function newLog1(err,data){
