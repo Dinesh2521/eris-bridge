@@ -473,6 +473,7 @@ function runLog(){
         throw new Error("Oraclize Connector not found, make sure you entered the correct OAR");
       }
       oraclizeC = res;
+      oraclizeC = ethUtil.unpad(oraclizeC);
       contract = contractManager.newContractFactory(abiOraclize).at(oraclizeC);
       listenForEvents(contract,oraclizeC);
     });
@@ -487,7 +488,7 @@ function runLog(){
     }
     function startEv2(err,res){
             if(err) throw new Error(err);
-            console.log('Listening @ 0x'+oraclizeC.toLowerCase().replace('0x000000000000000000000000','')+' (Oraclize Connector)\n');
+            console.log('Listening @ 0x'+oraclizeC.toLowerCase()+' (Oraclize Connector)\n');
     }
 
     function newLog1(err,data){
@@ -506,10 +507,10 @@ function runLog(){
     function handleLog(data){
       var counter = 0;
       data = data['args'];
-      var myIdInitial = data['cid'];
+      var myIdInitial = ethUtil.stripHexPrefix(data['cid']);
       myIdList[myIdInitial] = false;
       var myid = myIdInitial;
-      var cAddr = data['sender'];
+      var cAddr = ethUtil.unpad(data['sender']);
       var ds = data['datasource'];
       if(typeof(data['arg']) != 'undefined'){
         var formula = data['arg'];
@@ -519,7 +520,7 @@ function runLog(){
       }
       var time = parseInt(data['timestamp']);
       var gasLimit = data['gaslimit'];
-      var proofType = data['proofType'];
+      var proofType = ethUtil.stripHexPrefix(data['proofType']);
       var query = {
           when: time,
           datasource: ds,
@@ -563,7 +564,7 @@ function queryComplete(gasLimit, myid, result, proof, contractAddr){
     if(proof==null){
       if(ops.address && !ops.broadcast){
         var callbackDefinition = [{"constant":false,"inputs":[{"name":"myid","type":"bytes32"},{"name":"result","type":"string"}],"name":"__callback","outputs":[],"type":"function"},{"inputs":[],"type":"constructor"}];
-        contractManager.newContractFactory(callbackDefinition).at(contractAddr).__callback(myid,result,{from:mainAccount,gas:gasLimit,value:0}, function(e, contract){
+	contractManager.newContractFactory(callbackDefinition).at(ethUtil.stripHexPrefix(contractAddr)).__callback(myid,result,{from:mainAccount,gas:gasLimit,value:0}, function(e, contract){
           if(e){
             console.log(e);
           }
@@ -590,7 +591,7 @@ function queryComplete(gasLimit, myid, result, proof, contractAddr){
       var inputProof = (proof.length==46) ? bs58.decode(proof) : proof;
       if(ops.address && !ops.broadcast){
         var callbackDefinition = [{"constant":false,"inputs":[{"name":"myid","type":"bytes32"},{"name":"result","type":"string"},{"name":"proof","type":"bytes"}],"name":"__callback","outputs":[],"type":"function"},{"inputs":[],"type":"constructor"}];
-        contractManager.newContractFactory(callbackDefinition).at(contractAddr).__callback(myid,result,inputProof,{from:mainAccount,gas:gasLimit,value:0}, function(e, contract){
+	contractManager.newContractFactory(callbackDefinition).at(ethUtil.stripHexPrefix(contractAddr)).__callback(myid,result,inputProof,{from:mainAccount,gas:gasLimit,value:0}, function(e, contract){
           if(e){
             console.log(e);
           }
@@ -620,3 +621,4 @@ function queryComplete(gasLimit, myid, result, proof, contractAddr){
   console.log('result: '+result);
   (!listenOnlyMode) ? console.log('Contract '+contractAddr+ ' __callback called') : console.log('Contract __callback not called (listen only mode)');
 }
+
