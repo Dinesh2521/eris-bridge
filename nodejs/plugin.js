@@ -564,7 +564,7 @@ function queryComplete(gasLimit, myid, result, proof, contractAddr){
     if(proof==null){
       if(ops.address && !ops.broadcast){
         var callbackDefinition = [{"constant":false,"inputs":[{"name":"myid","type":"bytes32"},{"name":"result","type":"string"}],"name":"__callback","outputs":[],"type":"function"},{"inputs":[],"type":"constructor"}];
-	contractManager.newContractFactory(callbackDefinition).at(ethUtil.stripHexPrefix(contractAddr)).__callback(myid,result,{from:mainAccount,gas:gasLimit,value:0}, function(e, contract){
+        contractManager.newContractFactory(callbackDefinition).at(ethUtil.stripHexPrefix(contractAddr)).__callback(myid,result,{from:mainAccount,gas:gasLimit,value:0}, function(e, contract){
           if(e){
             console.log(e);
           }
@@ -591,7 +591,7 @@ function queryComplete(gasLimit, myid, result, proof, contractAddr){
       var inputProof = (proof.length==46) ? bs58.decode(proof) : proof;
       if(ops.address && !ops.broadcast){
         var callbackDefinition = [{"constant":false,"inputs":[{"name":"myid","type":"bytes32"},{"name":"result","type":"string"},{"name":"proof","type":"bytes"}],"name":"__callback","outputs":[],"type":"function"},{"inputs":[],"type":"constructor"}];
-	contractManager.newContractFactory(callbackDefinition).at(ethUtil.stripHexPrefix(contractAddr)).__callback(myid,result,inputProof,{from:mainAccount,gas:gasLimit,value:0}, function(e, contract){
+        contractManager.newContractFactory(callbackDefinition).at(ethUtil.stripHexPrefix(contractAddr)).__callback(myid,result,inputProof,{from:mainAccount,gas:gasLimit,value:0}, function(e, contract){
           if(e){
             console.log(e);
           }
@@ -621,4 +621,3 @@ function queryComplete(gasLimit, myid, result, proof, contractAddr){
   console.log('result: '+result);
   (!listenOnlyMode) ? console.log('Contract '+contractAddr+ ' __callback called') : console.log('Contract __callback not called (listen only mode)');
 }
-
