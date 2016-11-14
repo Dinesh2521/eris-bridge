@@ -14,6 +14,8 @@ var path = require('path');
 var ethUtil = require('ethereumjs-util');
 var bs58 = require('bs58');
 
+var BRIDGE_VERSION = require('./package.json').version;
+
 var edb;
 
 var oraclizeC = '',
@@ -289,18 +291,20 @@ function OARgenerate(){
 }
 
 function createQuery(query, callback){
-  request.post('https://api.oraclize.it/v1/query/create', {body: query, json: true, headers: { 'User-Agent': 'ethereum-bridge nodejs' }}, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
+  request.post('https://api.oraclize.it/v1/query/create', {body: query, json: true, headers: { 'User-Agent': 'eris-bridge/'+BRIDGE_VERSION+' (nodejs)' }}, function (error, response, body) {
+    if (error) console.error(error);
+    if (response.statusCode == 200) {
       callback(body);
-    }
+    } else console.error("UNEXPECTED ANSWER FROM THE ORACLIZE ENGINE, PLEASE UPGRADE TO THE LATEST ERIS-BRIDGE");
   });
 }
 
 function checkQueryStatus(query_id, callback){
-  request.get('https://api.oraclize.it/v1/query/'+query_id+'/status', {json: true, headers: { 'User-Agent': 'ethereum-bridge nodejs' }}, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
+  request.get('https://api.oraclize.it/v1/query/'+query_id+'/status', {json: true, headers: { 'User-Agent': 'eris-bridge/'+BRIDGE_VERSION+' (nodejs)' }}, function (error, response, body) {
+    if (error) console.error(error);
+    if (response.statusCode == 200) {
       callback(body);
-    }
+    } else console.error("UNEXPECTED ANSWER FROM THE ORACLIZE ENGINE, PLEASE UPGRADE TO THE LATEST ERIS-BRIDGE");
   });
 }
 
