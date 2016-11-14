@@ -12,8 +12,7 @@
     "prompt": "^1.0.0",
     "request": "^2.78.0",
     "solc": "^0.3.6",
-    "stdio": "~0.2.7",
-    "web3": "~0.15.3"
+    "stdio": "~0.2.7"
   },
   "devDependencies": {},
   "scripts": {

@@ -11,11 +11,9 @@ var stdio = require('stdio');
 var request = require('request');
 var fs = require('fs');
 var path = require('path');
-var Web3 = require('web3');
 var ethUtil = require('ethereumjs-util');
 var bs58 = require('bs58');
 
-var web3 = new Web3();
 var edb;
 
 var oraclizeC = '',
@@ -28,7 +26,6 @@ var oraclizeC = '',
     addressNonce = '',
     myIdList = [],
     fallbackContractMode = false,
-    generateAddress = false,
     mainAccount,
     defaultGas = 3000000;
 
@@ -79,49 +76,8 @@ if(ops.url){
   url = ops.url;
 }
 
-if(!ops.address && !ops.broadcast && ops.address!=-1){
-  //throw new Error('script started with no option, please choose between --address or --broadcast');
-  generateAddress = true;
-  console.log('no option choosen, generating a new address...\n');
-    var password = ethWallet.keystore.generateRandomSeed();
-    ethWallet.keystore.createVault({
-      password: password,
-    }, function (err, ks) {
-      ks.keyFromPassword(password, function (err, pwDerivedKey) {
-        if (err) throw err;
-        ks.generateNewAddress(pwDerivedKey, 1);
-        var addr = ks.getAddresses()[0];
-        mainAccount = addr.replace('0x','');
-        var keyPath = (ops.key) ? ops.key : '../keys.json';
-        fs.readFile(keyPath, function read(err,data) {
-          keysFile = data;
-          if(err){
-            if(err.code=='ENOENT') keysFile = '';
-          }
-          var privateKeyExported = ks.exportPrivateKey(addr,pwDerivedKey);
-          privateKey = new Buffer(privateKeyExported,'hex');
-          var privateToSave = [privateKeyExported];
-          var accountPosition = 0;
-          if(keysFile && keysFile.length>0){
-            var privateToSave = privateKeyExported;
-            var keyObj = JSON.parse(keysFile.toString());
-            accountPosition = keyObj.length;
-            keyObj.push(privateToSave);
-            privateToSave = keyObj;
-          }
-          var contentToWrite = privateToSave;
-          fs.writeFile(keyPath, JSON.stringify(contentToWrite), function (err) {
-            if (err) return console.error(err);
-            console.log('Private key saved in '+keyPath+' file\n');
-            connectToErisDb();
-            loadContracts();
-            generateOraclize();
-          });
-          console.log('Generated address: '+addr+' - at position: '+accountPosition);
-          ops.broadcast = true;
-        });
-      });
-    });
+if(!ops.address && !ops.broadcast && ops.address!=-1 && !ops.accounts){
+  throw new Error('script started with no option, please choose your chain accouts.json file with --accounts');
 }
 
 // contracts var
@@ -203,11 +159,11 @@ if(ops.accounts && ops.address){
   contractManager = erisC.newContractManagerDev(defaultnode,accountData);
 }
 
-if(!generateAddress) connectToErisDb();
+connectToErisDb();
 
 if(ops.address && !ops.broadcast && !ops.accounts){
   var addressUser = ops.address;
-  if(web3.isAddress(addressUser)){
+  if(ethUtil.isValidAddress(ethUtil.addHexPrefix(addressUser))){
     console.log('Using '+addressUser+' to act as Oraclize, make sure it is unlocked and do not use the same address to deploy your contracts');
     mainAccount = addressUser;
   } else {
@@ -227,46 +183,28 @@ if(ops.address && !ops.broadcast && !ops.accounts){
     }
   }
 } else if(ops.broadcast) {
-  console.log('Broadcast mode active, a json key file is needed with your private in this format: ["privateKeyHex"]');
-  try {
-    var keyPath = (ops.key) ? ops.key:'../keys.json';
-    var privateKeyObj = JSON.parse(fs.readFileSync(keyPath).toString());
-    var accountIndex = (ops.address && ops.address>=0) ? ops.address : 0;
-    privateKey = privateKeyObj[accountIndex].replace('0x','');
-    privateKey = new Buffer(privateKey,'hex');
-    var publicKey = ethUtil.privateToAddress(privateKey).toString('hex');
-    mainAccount = publicKey;
-    //addressNonce = web3.eth.getTransactionCount(mainAccount);
-    edb.accounts().getAccount(mainAccount,function(err,res){
-      addressNonce = res.sequence;
-    });
-    console.log('Loaded '+mainAccount+' - at position: '+accountIndex);
-  } catch(e) {
-      if(e.code==='ENOENT'){
-        throw new Error('private key not found in '+keyPath+' make sure this is the right path');
-      } else throw new Error('Private key load error ',e);
+  throw new Error("broadcast mode not available");
+}
+
+
+if(ops.forcecomp){
+  compileContracts();
+} else {
+  if(ops.oar && ops.loadabi){
+      abiOraclize = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../contracts/abi/oraclizeConnector.json')).toString());
+      abi = JSON.parse(fs.readFileSync(path.join(__dirname, '../contracts/abi/addressResolver.json')).toString());
+  } else {
+    if(!listenOnlyMode && !ops.nocomp){
+      loadContracts();
+    } else if(!listenOnlyMode && ops.nocomp) fallbackContracts();
   }
 }
 
-if(!generateAddress){
-  if(ops.forcecomp){
-    compileContracts();
-  } else {
-    if(ops.oar && ops.loadabi){
-        abiOraclize = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../contracts/abi/oraclizeConnector.json')).toString());
-        abi = JSON.parse(fs.readFileSync(path.join(__dirname, '../contracts/abi/addressResolver.json')).toString());
-    } else {
-      if(!listenOnlyMode && !ops.nocomp){
-        loadContracts();
-      } else if(!listenOnlyMode && ops.nocomp) fallbackContracts();
-    }
-  }
-}
 
 if(ops.oar){
   var addressOAR = (ops.oar).trim();
   if(addressOAR.length>=1){
-    if(web3.isAddress(addressOAR)){
+    if(ethUtil.isValidAddress(ethUtil.addHexPrefix(addressOAR))){
       // is valid
       oraclizeOAR = addressOAR.replace('0x','');
       console.log('OAR Address: 0x'+oraclizeOAR);
@@ -277,12 +215,12 @@ if(ops.oar){
     }
   }
 } else {
-  if(!listenOnlyMode && !generateAddress){
+  if(!listenOnlyMode){
     generateOraclize();
   }
 }
 
-if(listenOnlyMode && ops.oar && ops.loadabi && !generateAddress){
+if(listenOnlyMode && ops.oar && ops.loadabi){
   runLog();
 } else {
     if(listenOnlyMode){
@@ -328,53 +266,6 @@ function generateOraclize(){
             } else OARgenerate();
           }
          });
-      } else if(ops.broadcast){
-        edb.accounts().getAccount(mainAccount,function(err,res){
-          addressNonce = res.sequence;
-          var rawTx = {
-            nonce: web3.toHex(addressNonce),
-            gasPrice: web3.toHex(web3.eth.gasPrice),
-            gasLimit: web3.toHex(defaultGas),
-            value: '0x00',
-            data: '0x'+dataC.replace('0x','')
-          };
-          var tx = new ethTx(rawTx);
-          tx.sign(privateKey);
-          var serializedTx = tx.serialize();
-          edb.txs().broadcastTx(tx,function(err,hash){
-            console.log(hash);
-            if(err) console.error(err);
-            var txInterval = setInterval(function(){
-              var contract = web3.eth.getTransactionReceipt(hash);
-              if(contract!=null){
-                if(typeof(contract.contractAddress)=='undefined') return;
-                clearInterval(txInterval);
-                oraclizeC = contract.contractAddress;
-                addressNonce++;
-                if(fallbackContractMode){
-                  var setCBaddressInputData = '0x'+ethAbi.simpleEncode("setCBaddress(address)",mainAccount).toString('hex');
-                  var rawTx = {
-                    nonce: web3.toHex(addressNonce),
-                    gasPrice: web3.toHex(web3.eth.gasPrice),
-                    gasLimit: web3.toHex(defaultGas),
-                    to: oraclizeC,
-                    value: '0x00',
-                    data: setCBaddressInputData
-                  };
-                  var tx = new ethTx(rawTx);
-                  tx.sign(privateKey);
-                  var serializedTx = tx.serialize();
-                  //web3.eth.sendRawTransaction(serializedTx.toString('hex'));
-                  edb.txs().broadcastTx(tx,function(err,hash){
-                    console.log(hash);
-                    addressNonce++;
-                    OARgenerate();
-                  });
-                } else OARgenerate();
-              }
-            }, 3000);
-          });
-        });
       }
     }
   });
@@ -393,55 +284,6 @@ function OARgenerate(){
           runLog();
         });
       }
-    });
-  } else if(ops.broadcast){
-    var rawTx = {
-      nonce: web3.toHex(addressNonce),
-      gasPrice: web3.toHex(web3.eth.gasPrice), 
-      gasLimit: web3.toHex(defaultGas),
-      value: '0x00', 
-      data: '0x'+dataB.replace('0x','')
-    };
-    var tx = new ethTx(rawTx);
-    tx.sign(privateKey);
-    var serializedTx = tx.serialize();
-    web3.eth.sendRawTransaction(serializedTx.toString('hex'), function(err, hash) {
-      if(err) console.error(err);
-      var txInterval = setInterval(function(){
-        var contractOAR = web3.eth.getTransactionReceipt(hash);
-        if(contractOAR!=null){
-          if(typeof(contractOAR.contractAddress)=='undefined') return;
-          clearInterval(txInterval);
-          addressNonce++;
-          oraclizeOAR = contractOAR.contractAddress;
-          contractOAR = web3.eth.contract(abi).at(oraclizeOAR);
-          var txInputData = '0xd1d80fdf000000000000000000000000'+oraclizeC.replace('0x',''); // setAddr(address)
-          var rawTx2 = {
-            to: oraclizeOAR,
-            nonce: web3.toHex(addressNonce),
-            gasPrice: web3.toHex(web3.eth.gasPrice),
-            gasLimit: web3.toHex(defaultGas),
-            value: '0x00',
-            data: txInputData
-          };
-          var tx2 = new ethTx(rawTx2);
-          tx2.sign(privateKey);
-          var serializedTx = tx2.serialize();
-          web3.eth.sendRawTransaction(serializedTx.toString('hex'), function(err, hash) {
-            if(err) console.error(err);
-            var txInterval = setInterval(function(){
-              if(web3.eth.getTransactionReceipt(hash)==null) return;
-              clearInterval(txInterval);
-              console.log('Generated OAR Address: '+oraclizeOAR);
-              console.log('Please add this line to your contract constructor:\n\n'+'OAR = OraclizeAddrResolverI('+oraclizeOAR+');\n\n');
-              addressNonce++;
-              setTimeout(function(){
-                runLog();
-              },500);
-            }, 3000);
-          });
-        }
-      }, 3000);
     });
   }
 }
@@ -465,12 +307,12 @@ function checkQueryStatus(query_id, callback){
 
 function runLog(){
   if(typeof(contract)=="undefined"){
-    oraclizeC = contractManager.newContractFactory(abi).at(oraclizeOAR).getAddress(function(err,res){
+    oraclizeC = contractManager.newContractFactory(abi).at(ethUtil.stripHexPrefix(oraclizeOAR)).getAddress(function(err,res){
       if(typeof(res)=='undefined'){
         throw new Error("Oraclize Connector not found, make sure you entered the correct OAR");
       }
       oraclizeC = res;
-      oraclizeC = ethUtil.unpad(oraclizeC);
+      oraclizeC = ethUtil.stripHexPrefix(ethUtil.unpad(oraclizeC));
       contract = contractManager.newContractFactory(abiOraclize).at(oraclizeC);
       listenForEvents(contract,oraclizeC);
     });
@@ -567,22 +409,6 @@ function queryComplete(gasLimit, myid, result, proof, contractAddr){
           }
           myIdList[myid] = true;
         });
-      } else {
-        var inputResult = ethAbi.rawEncode(["bytes32","string"],[myid,result]).toString('hex');
-        var rawTx = {
-          nonce: web3.toHex(addressNonce),
-          gasPrice: web3.toHex(web3.eth.gasPrice), 
-          gasLimit: web3.toHex(gasLimit),
-          to: contractAddr, 
-          value: '0x00', 
-          data: '0x27DC297E'+inputResult
-        };
-        var tx = new ethTx(rawTx);
-        tx.sign(privateKey);
-        var serializedTx = tx.serialize();
-        web3.eth.sendRawTransaction(serializedTx.toString('hex'));
-        myIdList[myid] = true;
-        addressNonce++;
       }
     } else {
       var inputProof = (proof.length==46) ? bs58.decode(proof) : proof;
@@ -594,22 +420,6 @@ function queryComplete(gasLimit, myid, result, proof, contractAddr){
           }
           myIdList[myid] = true;
         });
-      } else {
-        var inputResultWithProof = ethAbi.rawEncode(["bytes32","string","bytes"],[myid,result,inputProof]).toString('hex');
-        var rawTx = {
-          nonce: web3.toHex(addressNonce),
-          gasPrice: web3.toHex(web3.eth.gasPrice), 
-          gasLimit: web3.toHex(gasLimit),
-          to: contractAddr, 
-          value: '0x00', 
-          data: '0x38BBFA50'+inputResultWithProof
-        };
-        var tx = new ethTx(rawTx);
-        tx.sign(privateKey);
-        var serializedTx = tx.serialize();
-        web3.eth.sendRawTransaction(serializedTx.toString('hex'));
-        myIdList[myid] = true;
-        addressNonce++;
       }
       console.log('proof: '+proof);
     }
