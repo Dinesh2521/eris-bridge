@@ -307,12 +307,12 @@ function checkQueryStatus(query_id, callback){
 
 function runLog(){
   if(typeof(contract)=="undefined"){
-    oraclizeC = contractManager.newContractFactory(abi).at(ethUtil.stripHexPrefix(oraclizeOAR)).getAddress(function(err,res){
+    oraclizeC = contractManager.newContractFactory(abi).at(oraclizeOAR).getAddress(function(err,res){
       if(typeof(res)=='undefined'){
         throw new Error("Oraclize Connector not found, make sure you entered the correct OAR");
       }
       oraclizeC = res;
-      oraclizeC = ethUtil.stripHexPrefix(ethUtil.unpad(oraclizeC));
+      oraclizeC = ethUtil.unpad(oraclizeC);
       contract = contractManager.newContractFactory(abiOraclize).at(oraclizeC);
       listenForEvents(contract,oraclizeC);
     });
