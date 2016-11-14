@@ -1,6 +1,6 @@
 ###Requirements
-- Node 6.0.0 < 6.5.0 & npm
-- eris version 0.12.0
+- Node < 6.0.0 & npm
+- eris version 0.11.4
 
 
 ####Note

@@ -1,13 +1,13 @@
 {
   "name": "eris-bridge",
-  "version": "0.1.0",
+  "version": "0.0.9",
   "description": "Eris logs listener to connect Oraclize onchain events to the Oraclize offchain engine",
   "main": "plugin.js",
   "dependencies": {
     "asn1": "^0.2.3",
     "bs58": "^3.0.0",
-    "eris-contracts": "^0.15.5",
-    "eris-db": "^0.15.5",
+    "eris-contracts": "^0.13.3",
+    "eris-db": "^0.15.0",
     "ethereumjs-util": "^5.0.1",
     "prompt": "^1.0.0",
     "request": "^2.78.0",
