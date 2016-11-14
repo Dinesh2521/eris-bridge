@@ -12,11 +12,8 @@ var request = require('request');
 var fs = require('fs');
 var path = require('path');
 var Web3 = require('web3');
-var ethTx = require('ethereumjs-tx');
 var ethUtil = require('ethereumjs-util');
-var ethAbi = require('ethereumjs-abi');
 var bs58 = require('bs58');
-var ethWallet = require('eth-lightwallet');
 
 var web3 = new Web3();
 var edb;
