@@ -15,9 +15,10 @@ npm install
 
 ###How to use
 ```
-node plugin --accounts /home/user/.eris/chains/my_chain/accounts.json -a 0
+node plugin --accounts /home/user/.eris/chains/my_chain/accounts.json -a my_chain_full_000 -H localhost:1337
 ```
-(will start the eris-bridge using the first account in the accounts.json file)
+(will start the eris-bridge using the my_chain_full_000 account in the accounts.json file and connect to the eris-db at localhost:1337/rpc)
+
 
 The accounts flag must point to your accounts.json active chain path
 
